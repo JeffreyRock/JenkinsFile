@@ -3,15 +3,30 @@ pipeline {
 
     environment {
         Build_Dir = 'build'
-        MSBuild_Path = "C:\\"
+        MSBuild_Path = "Engine\\ConsoleApplication1\\ConsoleApplication1"
+        GLFW_DIR = 'C:\\Jenkins\\workspace\\TestJob\\Engine\\ConsoleApplication1\\ConsoleApplication1\\GLFW\\glfw-3.4.bin.WIN64'
+        
         Warning = false
         Failed = false
     }
-
+    parameters{
+         choice(name: 'branch', choices: ['main', 'develop', 'feature-1'], description: 'Select the branch to build')
+         booleanParam(name: 'cleanWorkspace', defaultValue: false, description: 'start fresh')
+    }
     stages {
+        stage("Fresh build"){
+            when {
+                expression{params.cleanWorkspace == true && env.NODE_LABELS.contains('Windows')} 
+            }
+            steps{
+                bat"""
+                rmdir /S /Q ${workspace}
+                """
+            }
+        }
         stage("Git Checkout") {
             steps {
-                git credentialsId: 'GitUserAccount', url: 'https://github.com/JeffreyRock/OpenGLEngine'
+                checkout scmGit(branches: [[name: '*/${branch}']], extensions: [], userRemoteConfigs: [[credentialsId: 'GitUserAccount', url: 'https://github.com/JeffreyRock/OpenGLEngine.git']])
             }
         }
         stage("Build Bash") {
@@ -21,7 +36,8 @@ pipeline {
             steps {
                 sh """
                     mkdir -p $Build_Dir
-                    cmake --build -S . -B $Build_Dir
+                    cd ./Engine/ConsoleApplication1/ConsoleApplication1
+                    g++ -I .\\GLFW\\glfw-3.4.bin.WIN64\\include -I .\\GLFW\\glfw-3.4.bin.WIN64\\include\\glad -L .\\GLFW\\glfw-3.4.bin.WIN64\\lib-mingw-w64 -o build\\ConsoleApplication1 ConsoleApplication1.cpp glad.c .\\GLFW\\glfw-3.4.bin.WIN64\\include\\glad\\glad.h -lglfw3 -lopengl32 -lgdi32"
                 """
             }
         }
@@ -32,18 +48,43 @@ pipeline {
             steps {
                 bat """
                     mkdir %Build_Dir%
-                    g++ -I .\Engine\ConsoleApplication1\ConsoleApplication1\GLFW\glfw-3.4.bin.WIN64\include -I .\Engine\ConsoleApplication1\ConsoleApplication1\GLFW\glfw-3.4.bin.WIN64\include\glad -L .\Engine\ConsoleApplication1\ConsoleApplication1\GLFW\glfw-3.4.bin.WIN64\lib-mingw-w64 .\Engine\ConsoleApplication1\ConsoleApplication1\ConsoleApplication1.cpp .\Engine\ConsoleApplication1\ConsoleApplication1\GLFW\glfw-3.4.bin.WIN64\include\glad\glad.c -lglfw3 -lopengl32 -lgdi32 -o .\build\build.exe
+                    cd .\\Engine\\ConsoleApplication1\\ConsoleApplication1
+                    g++ -I .\\GLFW\\glfw-3.4.bin.WIN64\\include -I .\\GLFW\\glfw-3.4.bin.WIN64\\include\\glad -L .\\GLFW\\glfw-3.4.bin.WIN64\\lib-mingw-w64 -o ..\\..\\..\\build\\engine ConsoleApplication1.cpp glad.c .\\GLFW\\glfw-3.4.bin.WIN64\\include\\glad\\glad.h -lglfw3 -lopengl32 -lgdi32"
                 """
             }
         }
-        stage("Test") {
+        stage("Test Mac/Linux") {
+            when {
+                expression { env.NODE_LABELS.contains('Bash') }
+            }
             steps {
-                echo "Test Complete"
+                sh"""
+                    cd ${workspace}/build
+                    ./engine.exe 
+                """
+            }
+        }
+        stage("Test Windows") {
+            when {
+                expression { env.NODE_LABELS.contains('Windows') }
+            }
+            steps {
+                bat"""
+                    cp ${workspace}\\Engine\\ConsoleApplication1\\ConsoleApplication1\\Shaders ${workspace}\\build
+                    cd ${workspace}/build
+                    start engine.exe
+                    ping 127.0.0.1 -n 10 > nul
+                    taskkill /im engine.exe /f
+                """
             }
         }
         stage("Archive") {
             steps {
-                echo "Archive Complete"
+                bat """
+                cd ${workspace}
+                xcopy /E /I /Y build E:\\engine
+                rmdir /S /Q build
+                """
             }
         }
     }
@@ -51,6 +92,7 @@ pipeline {
     post {
         always {
             echo "Pipeline execution finished"
+            cleanWs cleanWhenAborted: false, cleanWhenSuccess: false, cleanWhenUnstable: false, patterns: [[pattern: '', type: 'INCLUDE']]
         }
     }
 }
