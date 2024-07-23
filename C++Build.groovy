@@ -37,7 +37,7 @@ pipeline {
                 sh """
                     mkdir -p $Build_Dir
                     cd ./Engine/ConsoleApplication1/ConsoleApplication1
-                    g++ -I .\\GLFW\\glfw-3.4.bin.WIN64\\include -I .\\GLFW\\glfw-3.4.bin.WIN64\\include\\glad -L .\\GLFW\\glfw-3.4.bin.WIN64\\lib-mingw-w64 -o build\\ConsoleApplication1 ConsoleApplication1.cpp glad.c .\\GLFW\\glfw-3.4.bin.WIN64\\include\\glad\\glad.h -lglfw3 -lopengl32 -lgdi32"
+                    g++ -I ./GLFW/glfw-3.4.bin.WIN64/include -I ./GLFW/glfw-3.4.bin.WIN64/include/glad -L ./GLFW/glfw-3.4.bin.WIN64/lib-mingw-w64 -o ../../../../build/engine ConsoleApplication1.cpp glad.c ./GLFW/glfw-3.4.bin.WIN64/include/glad/glad.h shader.h shader.cpp -lglfw3 -lopengl32 -lgdi32
                 """
             }
         }
@@ -49,7 +49,7 @@ pipeline {
                 bat """
                     mkdir %Build_Dir%
                     cd .\\Engine\\ConsoleApplication1\\ConsoleApplication1
-                    g++ -I .\\GLFW\\glfw-3.4.bin.WIN64\\include -I .\\GLFW\\glfw-3.4.bin.WIN64\\include\\glad -L .\\GLFW\\glfw-3.4.bin.WIN64\\lib-mingw-w64 -o ..\\..\\..\\build\\engine ConsoleApplication1.cpp glad.c .\\GLFW\\glfw-3.4.bin.WIN64\\include\\glad\\glad.h -lglfw3 -lopengl32 -lgdi32"
+                    g++ -I .\\GLFW\\glfw-3.4.bin.WIN64\\include -I .\\GLFW\\glfw-3.4.bin.WIN64\\include\\glad -L .\\GLFW\\glfw-3.4.bin.WIN64\\lib-mingw-w64 -o ..\\..\\..\\build\\engine ConsoleApplication1.cpp glad.c .\\GLFW\\glfw-3.4.bin.WIN64\\include\\glad\\glad.h shader.h shader.cpp -lglfw3 -lopengl32 -lgdi32"
                 """
             }
         }
@@ -82,7 +82,8 @@ pipeline {
             steps {
                 bat """
                 cd ${workspace}
-                xcopy /E /I /Y build E:\\engine
+                mkdir E:\\engine\\${env.BUILD_NUMBER}
+                xcopy /E /I /Y build E:\\engine\\${env.BUILD_NUMBER}
                 rmdir /S /Q build
                 """
             }
