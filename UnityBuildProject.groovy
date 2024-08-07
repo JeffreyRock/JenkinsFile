@@ -1,54 +1,56 @@
 pipeline{
     agent any
 
-    enviroment{
+    environment {
         unity_version= '2020.2.1f1'
-        unity_projectWin= 'C:\\Program Files\\Unity\\Hub\\Editor\\2022.2f1\\Editor\\Unity.exe'
-        unity_BuildPath_Win = "G:\\My Drive\\Black Mind Studios\\Projects\\Project Monkey Buttz\\Build_${BUILD_NUMBER}"
+        unity_projectWin= '"C:\\Program Files\\Unity\\Hub\\Editor\\2020.2.1f1\\Editor\\Unity.exe"'
+        unity_BuildPath_Win = '"G:\\My Drive\\Black Mind Studios\\Projects\\Project Monkey Buttz\\Build_${BUILD_NUMBER}"'
         unity_BuildPath_lin = ""
-        unity_Executable_Win = "C:\\Program Files\\Unity\\Hub\\Editor\\${unity_version}/Editor/Unity"
+        unity_Executable_Win = '"C:\\Program Files\\Unity\\Hub\\Editor\\2020.2.1f1\\Editor\\Unity.exe"'
         unity_Executable_Lin = ""
     }
 
     parameters{
         choice(name: 'project', choices: ['ProjectMonkeyButtzCode', 'LaserBirdsMK2'], description: 'Select the branch to build')
+        choice(name: "branch", choices:['master','main'])
         booleanParam(name: 'cleanWorkspace', defaultValue: false, description: 'start fresh')
     }
     stages {
         stage("Fresh build"){
             when {
-                expression{params.cleanWorkspace == true && env.NODE_LABELS.contains('Windows')} 
+                expression{params.cleanWorkspace == true} 
             }
             steps{
-                bat"""
-                rmdir /S /Q ${workspace}
-                """
+                cleanWs()
             }
         }
         stage("SCM checkout"){
             steps{
-                checkout scmGit(branches: [[name: '*/${branch}']], extensions: [], userRemoteConfigs: [[credentialsId: 'GitUserAccount', url: 'https://github.com/JeffreyRock/${Project}']])
+                checkout scmGit(branches: [[name: '${branch}']], extensions: [], userRemoteConfigs: [[credentialsId: 'GitUserAccount', url: 'https://github.com/JeffreyRock/ProjectMonkeyButtzCode']])
             }
         }
-        stage("Build unity game"){
-            steps{
-                powershell """
-                    \unityExecutable = '${unity_Executable_Win}'
-                    \$projectPath = '.\\ProjectMonkeyButtzCode\\'
-                    \$buildPath = '${unity_BuildPath_Win}'
-                    \$BuildNumber = '${BUILD_NUMBER}'
-                    & \$unityExecutable -batchmode -nographics -quit -projectPath \$projectPath -executeMethod BuildScript.Build -logFile build_\${buildNumber}.log -buildOutput \$buildPath -buildNumber \$buildNumber
+        stage("Build unity game") {
+            steps {
+                bat """
+                    set unityExecutable=${unity_Executable_Win}
+                    set projectPath= ${workspace}\\
+                    set buildPath=${unity_BuildPath_Win}
+                    set buildNumber=${BUILD_NUMBER}
+                    
+                    echo Unity Executable: %unityExecutable%
+                    echo Project Path: %projectPath%
+                    echo Build Path: %buildPath%
+                     %unityExecutable% -batchmode -nographics -quit -projectPath %projectPath% -executeMethod BuildScript.BuildWindows -logFile Builds\\build_%buildNumber%.log -buildOutput Builds -buildNumber %buildNumber%
                 """
             }
         }
-        stage("Move Project to archive"){
-            steps{
-                powershell
-                """
+        stage("Move Project to archive") {
+            steps {
+                bat """
                 cd ${workspace}
-                mkdir E:\\engine\\${env.BUILD_NUMBER}
-                xcopy /E /I /Y build E:\\engine\\${env.BUILD_NUMBER}
-                rmdir /S /Q build
+                mkdir "G:\\My Drive\\Black Mind Studios\\Projects\\Project Monkey Buttz\\Build_${BUILD_NUMBER}"
+                xcopy /E /I /Y Builds "G:\\My Drive\\Black Mind Studios\\Projects\\Project Monkey Buttz\\Build_${BUILD_NUMBER}"
+                rmdir /S /Q Builds
                 """
             }
         }
