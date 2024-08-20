@@ -16,7 +16,7 @@ pipeline{
         booleanParam(name: 'cleanWorkspace', defaultValue: false, description: 'start fresh')
     }
     stages {
-        stage("Fresh build"){
+        stage("Fresh build Monkey"){
             when {
                 expression{params.cleanWorkspace == true} 
             }
@@ -26,10 +26,27 @@ pipeline{
         }
         stage("SCM checkout"){
             steps{
-                checkout scmGit(branches: [[name: '${branch}']], extensions: [], userRemoteConfigs: [[credentialsId: 'GitUserAccount', url: 'https://github.com/JeffreyRock/ProjectMonkeyButtzCode']])
+                checkout scmGit(branches: [[name: '${branch}']], extensions: [], userRemoteConfigs: [[credentialsId: 'GitUserAccount', url: "https://github.com/JeffreyRock/${project}"]])
             }
         }
-        stage("Build unity game") {
+        stage("build laserBirds  "){
+            when {
+                expression{params.project == 'LaserBirdsMK2'}
+            }
+            steps{
+                bat"""
+                    move ${workspace}\\LazerBirdsMK2\\* ${workspace}\\
+                    move ${workspace}\\LazerBirdsMK2\\Assets ${workspace}\\Assets
+                    move ${workspace}\\LazerBirdsMK2\\Packages ${workspace}\\Packages
+                    move ${workspace}\\LazerBirdsMK2\\ProjectSettings ${workspace}\\ProjectSettings
+                    move ${workspace}\\LazerBirdsMK2\\Library ${workspace}\\Library
+                    move ${workspace}\\LazerBirdsMK2\\Logs ${workspace}\\Logs
+                    move ${workspace}\\LazerBirdsMK2\\obj ${workspace}\\obj
+                    move ${workspace}\\LazerBirdsMK2\\UserSettings ${workspace}\\UserSettings
+                """
+            }
+        }
+        stage("Build unity project") {
             steps {
                 bat """
                     set unityExecutable=${unity_Executable_Win}
@@ -44,12 +61,28 @@ pipeline{
                 """
             }
         }
-        stage("Move Project to archive") {
+        stage("Move Project to Project Monkey") {
+            when {
+                expression{params.project == 'ProjectMonkeyButtzCode'}
+            }
             steps {
                 bat """
                 cd ${workspace}
-                mkdir "G:\\My Drive\\Black Mind Studios\\Projects\\Project Monkey Buttz\\Build_${BUILD_NUMBER}"
-                xcopy /E /I /Y Builds "G:\\My Drive\\Black Mind Studios\\Projects\\Project Monkey Buttz\\Build_${BUILD_NUMBER}"
+                mkdir "G:\\My Drive\\Black Mind Studios\\Projects\\Project Monkey Buttz\\JenkinBuilds\\Build_${BUILD_NUMBER}"
+                xcopy /E /I /Y Builds "G:\\My Drive\\Black Mind Studios\\Projects\\Project Monkey Buttz\\JenkinBuilds\\Build_${BUILD_NUMBER}"
+                rmdir /S /Q Builds
+                """
+            }
+        }
+        stage("Move Project to Laser Birds") {
+            when {
+                expression{params.project == 'LaserBirdsMK2'}
+            }
+            steps {
+                bat """
+                cd ${workspace}
+                mkdir "G:\\My Drive\\Black Mind Studios\\Projects\\Lazer Birds\\Builds\\Build_${BUILD_NUMBER}"
+                xcopy /E /I /Y Builds "G:\\My Drive\\Black Mind Studios\\Projects\\Lazer Birds\\Builds\\Build_${BUILD_NUMBER}"
                 rmdir /S /Q Builds
                 """
             }
